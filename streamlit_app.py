@@ -146,16 +146,12 @@ st.download_button(
     mime='text/csv',
 )
 
-# Filter the roster to get forwards
 forwards = df_roster[df_roster['Position'] == 'forward']  # Adjust 'Position' if needed
 
-# Streamlit interface
-st.title("Points per Game for All Forwards - Edmonton Oilers 2023-2024")
+# Prepare a DataFrame to hold points per game for each forward
+chart_data = pd.DataFrame()
 
-# Create a figure for plotting
-plt.figure(figsize=(18, 6))  # Make the plot wider
-
-# Iterate over all forwards to plot their points per game
+# Iterate over all forwards to calculate their points per game
 for player_full_name in forwards['Name']:  # Adjust the column name as needed
     last_name = player_full_name.split()[-1]  # Extract last name
 
@@ -163,8 +159,6 @@ for player_full_name in forwards['Name']:  # Adjust the column name as needed
     merged_data = pd.merge(df_goals, df_games[['GameID', 'Game#', 'Date', 'Win/Loss']], left_on='ID', right_on='GameID')
 
     player_points = []
-    game_numbers = []
-    results = []
 
     # Calculate points per game for each forward
     for game in df_games['Game#']:
@@ -181,47 +175,17 @@ for player_full_name in forwards['Name']:  # Adjust the column name as needed
                 game_points += 1
 
         player_points.append(game_points)
-        game_numbers.append(game)
 
-        result = merged_data[merged_data['Game#'] == game].iloc[0]['Win/Loss']
-        results.append(result)
+    # Add the player's points to the DataFrame with the player's name as the column header
+    chart_data[player_full_name] = player_points
 
-    plt.plot(game_numbers, player_points, marker='o', label=player_full_name)
+# Add game numbers as the index (x-axis)
+chart_data.index = df_games['Game#'].unique()
 
-# Set y-limits and prepare for annotation
-ymin, ymax = plt.ylim()
-annotation_offset = 6  # Set the y-position for all annotations
+# Streamlit interface
+st.title("Points per Game for All Forwards - Edmonton Oilers 2023-2024")
 
-# Annotate game results
-for game_number, result in zip(game_numbers, results):
-    plt.annotate(result,
-                 (game_number, annotation_offset),  # Align annotations on the same line
-                 textcoords="offset points",
-                 xytext=(0, 10),
-                 ha='center',
-                 rotation=90,
-                 fontsize=8,
-                 color='black')
-
-# Set plot labels and title
-plt.xlabel('Game#')
-plt.ylabel('Points')
-plt.title('Points per Game for All Forwards')
-plt.legend(loc='upper right', bbox_to_anchor=(1.15, 1))  # Adjust legend position
-plt.grid(True)
-
-# Set x-ticks and y-ticks
-x_ticks = range(1, max(df_games['Game#']) + 1, 1)
-plt.xticks(ticks=x_ticks, rotation=90)
-
-y_ticks = range(0, int(ymax) + 2)
-plt.yticks(ticks=y_ticks)
-
-# Adjust layout
-plt.tight_layout()
-plt.subplots_adjust(top=0.85)  # Adjust the top margin to move the title up
-
-# Show the plot in Streamlit
-st.pyplot(plt)
+# Display the line chart using st.line_chart
+st.line_chart(chart_data)
 
 
