@@ -146,17 +146,8 @@ st.download_button(
     mime='text/csv',
 )
 
-
-
-import matplotlib.pyplot as plt
-
-# Load the datasets
-games_info = pd.read_csv('games_info.csv')
-goals_info = pd.read_csv('goals_info.csv')
-roster = pd.read_csv('roster.csv')
-
 # Filter the roster to get forwards
-forwards = roster[roster['Position'] == 'forward']  # Adjust 'Position' if needed
+forwards = df_roster[df_roster['Position'] == 'forward']  # Adjust 'Position' if needed
 
 # Streamlit interface
 st.title("Points per Game for All Forwards - Edmonton Oilers 2023-2024")
@@ -169,14 +160,14 @@ for player_full_name in forwards['Name']:  # Adjust the column name as needed
     last_name = player_full_name.split()[-1]  # Extract last name
 
     # Merge game data and goal data
-    merged_data = pd.merge(goals_info, games_info[['GameID', 'Game#', 'Date', 'Win/Loss']], left_on='ID', right_on='GameID')
+    merged_data = pd.merge(df_goals, df_games[['GameID', 'Game#', 'Date', 'Win/Loss']], left_on='ID', right_on='GameID')
 
     player_points = []
     game_numbers = []
     results = []
 
     # Calculate points per game for each forward
-    for game in games_info['Game#']:
+    for game in df_games['Game#']:
         if game not in merged_data['Game#'].values:
             continue
 
@@ -220,7 +211,7 @@ plt.legend(loc='upper right', bbox_to_anchor=(1.15, 1))  # Adjust legend positio
 plt.grid(True)
 
 # Set x-ticks and y-ticks
-x_ticks = range(1, max(games_info['Game#']) + 1, 1)
+x_ticks = range(1, max(df_games['Game#']) + 1, 1)
 plt.xticks(ticks=x_ticks, rotation=90)
 
 y_ticks = range(0, int(ymax) + 2)
@@ -233,10 +224,4 @@ plt.subplots_adjust(top=0.85)  # Adjust the top margin to move the title up
 # Show the plot in Streamlit
 st.pyplot(plt)
 
-# Optionally, allow the user to download the plot as a PNG file
-st.download_button(
-    label="Download Plot as PNG",
-    data=plt.savefig('all_forwards_points_per_game_with_annotations.png'),
-    file_name='all_forwards_points_per_game_with_annotations.png',
-    mime='image/png',
-)
+
