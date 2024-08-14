@@ -146,46 +146,62 @@ st.download_button(
     mime='text/csv',
 )
 
-forwards = df_roster[df_roster['Position'] == 'forward']  # Adjust 'Position' if needed
-
-# Prepare a DataFrame to hold points per game for each forward
-chart_data = pd.DataFrame()
-
-# Iterate over all forwards to calculate their points per game
-for player_full_name in forwards['Name']:  # Adjust the column name as needed
-    last_name = player_full_name.split()[-1]  # Extract last name
-
-    # Merge game data and goal data
-    merged_data = pd.merge(df_goals, df_games[['GameID', 'Game#', 'Date', 'Win/Loss']], left_on='ID', right_on='GameID')
-
-    player_points = []
-
-    # Calculate points per game for each forward
-    for game in df_games['Game#']:
-        if game not in merged_data['Game#'].values:
-            continue
-
-        game_goals = merged_data[merged_data['Game#'] == game]
-
-        game_points = 0
-        for index, row in game_goals.iterrows():
-            if last_name in str(row['Scored by']):
-                game_points += 1
-            if last_name in str(row['Assist 1']) or last_name in str(row['Assist 2']):
-                game_points += 1
-
-        player_points.append(game_points)
-
-    # Add the player's points to the DataFrame with the player's name as the column header
-    chart_data[player_full_name] = player_points
-
-# Add game numbers as the index (x-axis)
-chart_data.index = df_games['Game#'].unique()
+forwards = df_roster[df_roster['Position'] == 'forward']
 
 # Streamlit interface
-st.title("Points per Game for All Forwards - Edmonton Oilers 2023-2024")
+st.title("Dynamic Points per Game Chart for Edmonton Oilers Forwards (2023-2024)")
 
-# Display the line chart using st.line_chart
-st.line_chart(chart_data)
+# Select forwards to display
+selected_forwards = st.multiselect(
+    "Select forwards to display",
+    options=forwards['Name'].unique(),
+    default=[forwards['Name'].iloc[0]]
+)
+
+# Prepare the data for plotting
+if selected_forwards:
+    plt.figure(figsize=(20, 10))
+    
+    for player_full_name in selected_forwards:
+        last_name = player_full_name.split()[-1]  # Extract last name
+        
+        # Merge game data and goal data
+        merged_data = pd.merge(df_goals, df_games[['GameID', 'Game#', 'Date', 'Win/Loss']], left_on='ID', right_on='GameID')
+
+        player_points = []
+        game_numbers = []
+        
+        # Calculate points per game for the selected forward
+        for game in df_games['Game#']:
+            if game not in merged_data['Game#'].values:
+                continue
+
+            game_goals = merged_data[merged_data['Game#'] == game]
+            game_points = 0
+            
+            for _, row in game_goals.iterrows():
+                if last_name in str(row['Scored by']):
+                    game_points += 1
+                if last_name in str(row['Assist 1']) or last_name in str(row['Assist 2']):
+                    game_points += 1
+            
+            player_points.append(game_points)
+            game_numbers.append(game)
+        
+        # Plot the line for this forward
+        st.line_chart(pd.DataFrame({
+            'Game#': game_numbers,
+            player_full_name: player_points
+        }).set_index('Game#'))
+
+    plt.xlabel('Game#')
+    plt.ylabel('Points')
+    plt.title('Points per Game for Selected Forwards')
+    plt.legend(loc='upper right', bbox_to_anchor=(1.15, 1))
+    plt.grid(True)
+
+    # Adjust layout and show plot
+    plt.tight_layout()
+    st.pyplot(plt)
 
 
