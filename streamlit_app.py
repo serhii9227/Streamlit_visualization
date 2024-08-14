@@ -151,57 +151,50 @@ forwards = df_roster[df_roster['Position'] == 'forward']
 # Streamlit interface
 st.title("Dynamic Points per Game Chart for Edmonton Oilers Forwards (2023-2024)")
 
-# Select forwards to display
-selected_forwards = st.multiselect(
-    "Select forwards to display",
-    options=forwards['Name'].unique(),
-    default=[forwards['Name'].iloc[0]]
+
+# Multi-select widget for selecting players
+selected_players = st.multiselect(
+    'Select forwards to display on the graph:',
+    forwards['Name'].tolist()
 )
 
-# Prepare the data for plotting
-if selected_forwards:
-    plt.figure(figsize=(20, 10))
-    
-    for player_full_name in selected_forwards:
-        last_name = player_full_name.split()[-1]  # Extract last name
-        
-        # Merge game data and goal data
+# Create the data for plotting based on selected players
+if selected_players:
+    plt.figure(figsize=(18, 6))
+
+    for player_full_name in selected_players:
+        last_name = player_full_name.split()[-1]
+
         merged_data = pd.merge(df_goals, df_games[['GameID', 'Game#', 'Date', 'Win/Loss']], left_on='ID', right_on='GameID')
 
         player_points = []
         game_numbers = []
-        
-        # Calculate points per game for the selected forward
+
         for game in df_games['Game#']:
             if game not in merged_data['Game#'].values:
                 continue
 
             game_goals = merged_data[merged_data['Game#'] == game]
+
             game_points = 0
-            
-            for _, row in game_goals.iterrows():
+            for index, row in game_goals.iterrows():
                 if last_name in str(row['Scored by']):
                     game_points += 1
                 if last_name in str(row['Assist 1']) or last_name in str(row['Assist 2']):
                     game_points += 1
-            
+
             player_points.append(game_points)
             game_numbers.append(game)
-        
-        # Plot the line for this forward
+
         st.line_chart(pd.DataFrame({
             'Game#': game_numbers,
             player_full_name: player_points
         }).set_index('Game#'))
 
-    plt.xlabel('Game#')
-    plt.ylabel('Points')
-    plt.title('Points per Game for Selected Forwards')
-    plt.legend(loc='upper right', bbox_to_anchor=(1.15, 1))
-    plt.grid(True)
+else:
+    st.write("Select at least one forward to display their points per game.")
 
-    # Adjust layout and show plot
-    plt.tight_layout()
-    st.pyplot(plt)
+# Show the plot in Streamlit
+st.pyplot(plt)
 
 
